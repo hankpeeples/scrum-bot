@@ -33,7 +33,7 @@ func Start(token string) {
 
 	// Need information about guilds (which includes channels),
 	// messages and voice states.
-	dg.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMessages | discordgo.IntentsGuildVoiceStates
+	dg.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMessages
 
 	// Open websocket and begin listening
 	err = dg.Open()
