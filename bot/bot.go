@@ -2,8 +2,10 @@
 package bot
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -19,20 +21,18 @@ var (
 
 // Start will begin a new discord bot session
 func Start(token string) {
-	log.Info("Attempting to start bot session...")
+	log.Info("Starting bot session...")
 	// Create discord session
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		log.Fatalf("Error creating discord session: %v", err)
 	}
 
-	// Register ready func as callback for ready events
-	// dg.AddHandler(ready)
+	dg.AddHandler(ready)
 	// Register messageCreate func as callback for message events
-	// dg.AddHandler(messageCreate)
+	dg.AddHandler(messageCreate)
 
-	// Need information about guilds (which includes channels),
-	// messages and voice states.
+	// Need information about guilds (which includes channels), messages
 	dg.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMessages
 
 	// Open websocket and begin listening
@@ -50,4 +50,41 @@ func Start(token string) {
 	log.Warn("Session terminated!")
 	// close discordgo session after kill signal is received
 	dg.Close()
+}
+
+func ready(s *discordgo.Session, event *discordgo.Ready) {
+	// Set status message
+	err := s.UpdateGameStatus(0, "Standup Coordinator")
+	if err != nil {
+		log.Error("Status message was NOT updated...")
+		return
+	}
+	log.Info("Bot status message updated successfully")
+}
+
+func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// Ignore all messages created by the bot itself
+	if m.Author.ID == s.State.User.ID {
+		return
+	}
+
+	// Only look for commands that begin with defined prefix character
+	if strings.HasPrefix(m.Content, utils.Prefix) {
+		// Log received commands
+		log.Infof("[%s]: %s", m.Author, m.Content)
+
+		command := m.Content[1:]
+
+		if command == "init" {
+			var channelID string = m.ChannelID
+			_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+				Title:       "Standup coordinator initialized",
+				Description: fmt.Sprintf("Standup messages will be sent in this channel: Monday - Friday at 8am."),
+				Color:       green,
+			})
+			if err != nil {
+				utils.HandleEmbedFailure(s, m, err)
+			}
+		}
+	}
 }
