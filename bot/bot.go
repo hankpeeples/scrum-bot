@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/hankpeeples/scrum-bot/utils"
@@ -78,6 +79,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		if command == "init" {
 			var channelID string = m.ChannelID
+			// Create message send timeout
+			timeout := time.NewTicker(time.Second * 5)
+
 			_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 				Title:       "Standup coordinator initialized",
 				Description: fmt.Sprintf("Standup messages will be sent in <#%s>,\nMonday - Friday at 8am.", channelID),
@@ -86,6 +90,45 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			if err != nil {
 				utils.HandleEmbedFailure(s, m, err)
 			}
+
+			go func(s *discordgo.Session, channelID string) {
+				for {
+					// run function every 24 hours
+					_ = <-timeout.C
+					log.Info("Standup message sent...")
+					// Get current date/day
+					day := time.Now().UTC().Format(time.RubyDate)
+
+					// If it is saturday or sunday, no message
+					if day[0:3] == "Sat" || day[0:3] == "Sun" {
+						log.Warnf("No standup today: %s", day[0:3])
+						timeout.Reset(time.Second * 2)
+					}
+
+					_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+						Title:       fmt.Sprintf("Daily standup `%s`", day[0:10]),
+						Description: "Please answer each question in the following thread...",
+						Fields: []*discordgo.MessageEmbedField{
+							{
+								Name:  "1. What did you work on last working day?",
+								Value: "__",
+							},
+							{
+								Name:  "2. What are you going to work on today?",
+								Value: "__",
+							},
+							{
+								Name:  "3. Are there any blocks to your workflow?",
+								Value: "__",
+							},
+						},
+						Color: blue,
+					})
+					if err != nil {
+						utils.HandleEmbedFailure(s, m, err)
+					}
+				}
+			}(s, channelID)
 		}
 	}
 }
