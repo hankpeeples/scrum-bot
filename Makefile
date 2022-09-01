@@ -8,7 +8,7 @@ build:
 	@# GOARCH=amd64 GOOS=linux go build -o ${BINARY}-linux main.go
 
 run:
-	echo ""; ./${BINARY}-darwin config.json
+	echo ""; ./${BINARY}-darwin
 
 clean:
 	@go clean
