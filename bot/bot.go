@@ -73,13 +73,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Log received commands
 		log.Infof("[%s]: %s", m.Author, m.Content)
 
+		// Grab command following prefix
 		command := m.Content[1:]
 
 		if command == "init" {
 			var channelID string = m.ChannelID
 			_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 				Title:       "Standup coordinator initialized",
-				Description: fmt.Sprintf("Standup messages will be sent in this channel: Monday - Friday at 8am."),
+				Description: fmt.Sprintf("Standup messages will be sent in <#%s>,\nMonday - Friday at 8am.", channelID),
 				Color:       green,
 			})
 			if err != nil {
