@@ -19,3 +19,4 @@ config.json
 .DS_Store
 scrum-bot-darwin
 .idea
+.env
