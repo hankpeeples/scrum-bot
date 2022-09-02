@@ -78,14 +78,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		command := m.Content[1:]
 
 		if command == "init" {
+			// Initialize timer duration
+			duration := time.Hour * 24
 			// Hard coding channel IDs for simplicity
+			// ! Change channel IDs before deploying
 			channelIDs := []string{"1015318828877623397", "1015318848154640595"}
-			channelID := m.ChannelID
-			// Create message send timeout
-			timeout := time.NewTicker(time.Second * 5)
+			// Create message send ticker
+			ticker := time.NewTicker(duration)
 
 			// Send initialized confirmation in channel '!init' was used
-			_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+			_, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 				Title:       "Standup coordinator initialized",
 				Description: fmt.Sprintf("Standup messages will be sent in <#%s>, <#%s>:\nMonday - Friday at 8am.", channelIDs[0], channelIDs[1]),
 				Color:       green,
@@ -95,23 +97,28 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 
 			go func() {
+				var fullDate, date, day string
 				// Counter for looping through each text channelID
 				i := 0
 				// run every 24 hours
-				_ = <-timeout.C
+				_ = <-ticker.C
 				for {
 					if i >= 2 {
 						i = 0
 						// Reset the ticker
-						timeout.Reset(time.Second * 5)
-						_ = <-timeout.C
+						ticker.Reset(duration)
+						_ = <-ticker.C
 					}
-					// Get current date/day
-					day := time.Now().UTC().Format(time.RubyDate)
+					// Get current date and time
+					fullDate = time.Now().UTC().Format(time.RubyDate)
+					// Only want first part of date: `Fri Sep 02`
+					date = fullDate[0:10]
+					// Only day of the week
+					day = date[0:3]
 
 					// If it is saturday or sunday, no message
-					if day[0:3] == "Sat" || day[0:3] == "Sun" {
-						log.Warnf("No standup today: %s", day[0:3])
+					if day == "Sat" || day == "Sun" {
+						log.Infof("No standup today: %s", day)
 						// 'i' and the ticker will reset so this message is only logged once
 						i = 2
 					} else {
@@ -124,9 +131,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						}
 
 						if !ch.IsThread() {
-							msg, _ := s.ChannelMessageSend(channelIDs[i], fmt.Sprintf("Standup Thread for `%s`", day[0:10]))
-							// Create thread
-							thread, err := s.MessageThreadStart(channelIDs[i], msg.ID, "Standup meeting", 60)
+							msg, _ := s.ChannelMessageSend(channelIDs[i], fmt.Sprintf("Standup Thread for `%s`", date))
+
+							// Create thread. Thread might archive after 300min (5 hours).
+							// Not sure what the archive duration actually does...
+							thread, err := s.MessageThreadStart(channelIDs[i], msg.ID, "Standup meeting", 300)
 
 							_, err = s.ChannelMessageSendEmbed(thread.ID, &discordgo.MessageEmbed{
 								Description: "Answer each question in this thread...",
@@ -151,10 +160,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 							}
 							log.Infof("Standup message sent - [%d]...", i)
 						}
-
 					}
 					i++
-				}
+				} // end of for loop
 			}()
 		}
 	}
