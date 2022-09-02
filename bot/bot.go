@@ -78,68 +78,84 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		command := m.Content[1:]
 
 		if command == "init" {
-			var channelID string = m.ChannelID
+			// Hard coding channel IDs for simplicity
+			channelIDs := []string{"1015318828877623397", "1015318848154640595"}
+			channelID := m.ChannelID
 			// Create message send timeout
-			timeout := time.NewTicker(time.Hour * 24)
+			timeout := time.NewTicker(time.Second * 5)
 
+			// Send initialized confirmation in channel '!init' was used
 			_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 				Title:       "Standup coordinator initialized",
-				Description: fmt.Sprintf("Standup messages will be sent in <#%s>,\nMonday - Friday at 8am.", channelID),
+				Description: fmt.Sprintf("Standup messages will be sent in <#%s>, <#%s>:\nMonday - Friday at 8am.", channelIDs[0], channelIDs[1]),
 				Color:       green,
 			})
 			if err != nil {
 				utils.HandleEmbedFailure(s, m, err)
 			}
 
-			go func(s *discordgo.Session, channelID string) {
+			go func() {
+				// Counter for looping through each text channelID
+				i := 0
+				// run every 24 hours
+				_ = <-timeout.C
 				for {
-					// run function every 24 hours
-					_ = <-timeout.C
-					log.Info("Standup message sent...")
+					if i >= 2 {
+						i = 0
+						// Reset the ticker
+						timeout.Reset(time.Second * 5)
+						_ = <-timeout.C
+					}
 					// Get current date/day
 					day := time.Now().UTC().Format(time.RubyDate)
 
 					// If it is saturday or sunday, no message
 					if day[0:3] == "Sat" || day[0:3] == "Sun" {
 						log.Warnf("No standup today: %s", day[0:3])
-						timeout.Reset(time.Hour * 24)
-					}
-
-					ch, err := s.State.Channel(channelID)
-					if err != nil {
-						log.Error("Error getting channel: %s", err)
-					}
-
-					if !ch.IsThread() {
-						msg, _ := s.ChannelMessageSend(channelID, fmt.Sprintf("Standup Thread for `%s`", day[0:10]))
-						// Create thread
-						thread, err := s.MessageThreadStart(channelID, msg.ID, "Standup meeting", 60)
-
-						_, err = s.ChannelMessageSendEmbed(thread.ID, &discordgo.MessageEmbed{
-							Description: "Answer each question in this thread...",
-							Fields: []*discordgo.MessageEmbedField{
-								{
-									Name:  "1. What did you work on last working day?",
-									Value: "__",
-								},
-								{
-									Name:  "2. What are you going to work on today?",
-									Value: "__",
-								},
-								{
-									Name:  "3. Are there any blocks to your workflow?",
-									Value: "__",
-								},
-							},
-							Color: blue,
-						})
+						// 'i' and the ticker will reset so this message is only logged once
+						i = 2
+					} else {
+						// Find each channels current state
+						ch, err := s.State.Channel(channelIDs[i])
 						if err != nil {
-							utils.HandleEmbedFailure(s, m, err)
+							log.Error("Error getting channel: %s", err)
+							s.ChannelMessageSend(m.ChannelID, "Unable to find correct channels...")
+							return
 						}
-					}
 
+						if !ch.IsThread() {
+							msg, _ := s.ChannelMessageSend(channelIDs[i], fmt.Sprintf("Standup Thread for `%s`", day[0:10]))
+							// Create thread
+							thread, err := s.MessageThreadStart(channelIDs[i], msg.ID, "Standup meeting", 60)
+
+							_, err = s.ChannelMessageSendEmbed(thread.ID, &discordgo.MessageEmbed{
+								Description: "Answer each question in this thread...",
+								Fields: []*discordgo.MessageEmbedField{
+									{
+										Name:  "1. What did you work on last working day?",
+										Value: "__",
+									},
+									{
+										Name:  "2. What are you going to work on today?",
+										Value: "__",
+									},
+									{
+										Name:  "3. Are there any blocks to your workflow?",
+										Value: "__",
+									},
+								},
+								Color: blue,
+							})
+							if err != nil {
+								utils.HandleEmbedFailure(s, m, err)
+							}
+							log.Infof("Standup message sent - [%d]...", i)
+						}
+
+					}
+					i++
 				}
-			}(s, channelID)
+			}()
 		}
 	}
 }
