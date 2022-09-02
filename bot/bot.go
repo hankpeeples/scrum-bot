@@ -80,7 +80,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if command == "init" {
 			var channelID string = m.ChannelID
 			// Create message send timeout
-			timeout := time.NewTicker(time.Second * 5)
+			timeout := time.NewTicker(time.Hour * 24)
 
 			_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
 				Title:       "Standup coordinator initialized",
@@ -102,31 +102,42 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					// If it is saturday or sunday, no message
 					if day[0:3] == "Sat" || day[0:3] == "Sun" {
 						log.Warnf("No standup today: %s", day[0:3])
-						timeout.Reset(time.Second * 2)
+						timeout.Reset(time.Hour * 24)
 					}
 
-					_, err := s.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
-						Title:       fmt.Sprintf("Daily standup `%s`", day[0:10]),
-						Description: "Please answer each question in the following thread...",
-						Fields: []*discordgo.MessageEmbedField{
-							{
-								Name:  "1. What did you work on last working day?",
-								Value: "__",
-							},
-							{
-								Name:  "2. What are you going to work on today?",
-								Value: "__",
-							},
-							{
-								Name:  "3. Are there any blocks to your workflow?",
-								Value: "__",
-							},
-						},
-						Color: blue,
-					})
+					ch, err := s.State.Channel(channelID)
 					if err != nil {
-						utils.HandleEmbedFailure(s, m, err)
+						log.Error("Error getting channel: %s", err)
 					}
+
+					if !ch.IsThread() {
+						msg, _ := s.ChannelMessageSend(channelID, fmt.Sprintf("Standup Thread for `%s`", day[0:10]))
+						// Create thread
+						thread, err := s.MessageThreadStart(channelID, msg.ID, "Standup meeting", 60)
+
+						_, err = s.ChannelMessageSendEmbed(thread.ID, &discordgo.MessageEmbed{
+							Description: "Answer each question in this thread...",
+							Fields: []*discordgo.MessageEmbedField{
+								{
+									Name:  "1. What did you work on last working day?",
+									Value: "__",
+								},
+								{
+									Name:  "2. What are you going to work on today?",
+									Value: "__",
+								},
+								{
+									Name:  "3. Are there any blocks to your workflow?",
+									Value: "__",
+								},
+							},
+							Color: blue,
+						})
+						if err != nil {
+							utils.HandleEmbedFailure(s, m, err)
+						}
+					}
+
 				}
 			}(s, channelID)
 		}
