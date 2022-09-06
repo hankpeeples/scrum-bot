@@ -81,8 +81,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			// Initialize timer duration
 			duration := time.Hour * 24
 			// Hard coding channel IDs for simplicity
-			// ! Change channel IDs before deploying
-			channelIDs := []string{"1015318828877623397", "1015318848154640595"}
+			channelIDs := []string{"1014940760568774666", "1016070677419270175"}
 			// Create message send ticker
 			ticker := time.NewTicker(duration)
 
