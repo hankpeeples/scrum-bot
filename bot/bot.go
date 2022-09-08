@@ -81,14 +81,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			// Initialize timer duration
 			duration := time.Hour * 24
 			// Hard coding channel IDs for simplicity
-			channelIDs := []string{"1014940760568774666", "1016070677419270175", "1016903999628259411"}
+			channelIDs := []string{"1016903999628259411", "1014940760568774666", "1016070677419270175"}
+			// number of channels
+			numChannels := len(channelIDs)
 			// Create message send ticker
 			ticker := time.NewTicker(duration)
 
 			// Send initialized confirmation in channel '!init' was used
 			_, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 				Title:       "Standup coordinator initialized",
-				Description: fmt.Sprintf("Standup messages will be sent in <#%s>, <#%s>:\nMonday - Friday at 8am.", channelIDs[0], channelIDs[1]),
+				Description: fmt.Sprintf("Standup messages will be sent in <#%s>, <#%s>, <#%s>:\nMonday - Friday, around 8am", channelIDs[0], channelIDs[1], channelIDs[2]),
 				Color:       green,
 			})
 			if err != nil {
@@ -102,7 +104,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				// run every 24 hours
 				_ = <-ticker.C
 				for {
-					if i >= 2 {
+					if i >= numChannels {
 						i = 0
 						// Reset the ticker
 						ticker.Reset(duration)
@@ -119,7 +121,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					if day == "Sat" || day == "Sun" {
 						log.Infof("No standup today: %s", day)
 						// 'i' and the ticker will reset so this message is only logged once
-						i = 2
+						i = numChannels
 					} else {
 						// Find each channels current state
 						ch, err := s.State.Channel(channelIDs[i])
@@ -130,11 +132,17 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						}
 
 						if !ch.IsThread() {
-							msg, _ := s.ChannelMessageSend(channelIDs[i], fmt.Sprintf("Standup Thread for `%s`", date))
+							msg, err := s.ChannelMessageSend(channelIDs[i], fmt.Sprintf("Standup Thread for `%s`", date))
+							if err != nil {
+								log.Error("Thread init msg: %v", err)
+							}
 
 							// Create thread. Thread might archive after 300min (5 hours).
 							// Not sure what the archive duration actually does...
-							thread, err := s.MessageThreadStart(channelIDs[i], msg.ID, "Standup meeting", 300)
+							thread, err := s.MessageThreadStart(channelIDs[i], msg.ID, "Standup meeting", 1440)
+							if err != nil {
+								log.Error("Thread start: %v", err)
+							}
 
 							_, err = s.ChannelMessageSendEmbed(thread.ID, &discordgo.MessageEmbed{
 								Description: "Answer each question in this thread...",
@@ -157,7 +165,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 							if err != nil {
 								utils.HandleEmbedFailure(s, m, err)
 							}
-							log.Infof("Standup message sent - [%d]...", i)
+							log.Infof("Standup message sent [%d of %d]", i+1, numChannels)
 						}
 					}
 					i++
