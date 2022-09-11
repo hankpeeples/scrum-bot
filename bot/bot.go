@@ -2,12 +2,10 @@
 package bot
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/hankpeeples/scrum-bot/utils"
@@ -64,6 +62,9 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 }
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// Hard coding channel IDs for simplicity
+	channelIDs := []string{"1016903999628259411", "1014940760568774666", "1016070677419270175"}
+	// channelIDs := []string{"1018326204161470526", "1018326221840449567", "1018326246364565645"}
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID {
 		return
@@ -75,102 +76,23 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		log.Infof("[%s]: %s", m.Author, m.Content)
 
 		// Grab command following prefix
-		command := m.Content[1:]
+		command := strings.Split(m.Content[1:], " ")
 
-		if command == "init" {
-			// Initialize timer duration
-			duration := time.Hour * 24
-			// Hard coding channel IDs for simplicity
-			channelIDs := []string{"1016903999628259411", "1014940760568774666", "1016070677419270175"}
-			// number of channels
-			numChannels := len(channelIDs)
-			// Create message send ticker
-			ticker := time.NewTicker(duration)
-
-			// Send initialized confirmation in channel '!init' was used
-			_, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
-				Title:       "Standup coordinator initialized",
-				Description: fmt.Sprintf("Standup messages will be sent in <#%s>, <#%s>, <#%s>:\nMonday - Friday, around 8am", channelIDs[0], channelIDs[1], channelIDs[2]),
-				Color:       green,
-			})
-			if err != nil {
-				utils.HandleEmbedFailure(s, m, err)
-			}
-
-			go func() {
-				var fullDate, date, day string
-				// Counter for looping through each text channelID
-				i := 0
-				// run every 24 hours
-				_ = <-ticker.C
-				for {
-					if i >= numChannels {
-						i = 0
-						// Reset the ticker
-						ticker.Reset(duration)
-						_ = <-ticker.C
-					}
-					// Get current date and time
-					fullDate = time.Now().UTC().Format(time.RubyDate)
-					// Only want first part of date: `Fri Sep 02`
-					date = fullDate[0:10]
-					// Only day of the week
-					day = date[0:3]
-
-					// If it is saturday or sunday, no message
-					if day == "Sat" || day == "Sun" {
-						log.Infof("No standup today: %s", day)
-						// 'i' and the ticker will reset so this message is only logged once
-						i = numChannels
-					} else {
-						// Find each channels current state
-						ch, err := s.State.Channel(channelIDs[i])
-						if err != nil {
-							log.Errorf("Error getting channel: %s", err)
-							s.ChannelMessageSend(m.ChannelID, "Unable to find correct channels...")
-							return
-						}
-
-						if !ch.IsThread() {
-							msg, err := s.ChannelMessageSend(channelIDs[i], fmt.Sprintf("Standup Thread for `%s`", date))
-							if err != nil {
-								log.Errorf("Thread init msg: %v", err)
-							}
-
-							// Create thread. Thread might archive after 300min (5 hours).
-							// Not sure what the archive duration actually does...
-							thread, err := s.MessageThreadStart(channelIDs[i], msg.ID, "Standup meeting", 1440)
-							if err != nil {
-								log.Errorf("Thread start: %v", err)
-							}
-
-							_, err = s.ChannelMessageSendEmbed(thread.ID, &discordgo.MessageEmbed{
-								Description: "Answer each question in this thread...",
-								Fields: []*discordgo.MessageEmbedField{
-									{
-										Name:  "1. What did you work on last working day?",
-										Value: "__",
-									},
-									{
-										Name:  "2. What are you going to work on today?",
-										Value: "__",
-									},
-									{
-										Name:  "3. Are there any blocks to your workflow?",
-										Value: "__",
-									},
-								},
-								Color: blue,
-							})
-							if err != nil {
-								utils.HandleEmbedFailure(s, m, err)
-							}
-							log.Infof("Standup message sent [%d of %d]", i+1, numChannels)
-						}
-					}
-					i++
-				} // end of for loop
-			}()
+		if command[0] == "init" {
+			StandupInit(s, m, channelIDs)
+		} else if command[0] == "getResponses" {
+			GetResponses(s, m, command)
 		}
+	}
+
+	// find channel (thread)
+	thread, err := s.Channel(m.ChannelID)
+	if err != nil {
+		log.Errorf("Error getting thread: %v", err)
+	}
+	// only grab responses from threads
+	if thread.IsThread() {
+		// parse and save to file
+		utils.SaveResponse(s, m, thread)
 	}
 }
