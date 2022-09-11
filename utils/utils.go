@@ -24,3 +24,19 @@ func HandleEmbedFailure(s *discordgo.Session, m *discordgo.MessageCreate, err er
 	s.ChannelMessageSend(m.ChannelID, "Something broke... Couldn't send embedded message.")
 	log.Error("Embed error: ", err)
 }
+
+// SaveResponse takes a thread response and saves it to a text file
+func SaveResponse(s *discordgo.Session, m *discordgo.MessageCreate, thread *discordgo.Channel) {
+	// find thread parent channel
+	parent, err := s.Channel(thread.ParentID)
+	if err != nil {
+		log.Errorf("Error getting parent: %v", err)
+	}
+	// get message author details
+	author, err := s.GuildMember(m.GuildID, m.Author.ID)
+	if err != nil {
+		log.Errorf("Error finding author: %v", err)
+	}
+
+	log.Infof("Response: [%s] -> [%s/%s]", author.Nick, parent.Name, thread.Name)
+}
