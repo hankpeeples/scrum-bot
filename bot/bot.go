@@ -76,11 +76,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		log.Infof("[%s]: %s", m.Author, m.Content)
 
 		// Grab command following prefix
-		command := m.Content[1:]
+		command := strings.Split(m.Content[1:], " ")
 
-		if command == "init" {
+		if command[0] == "init" {
 			StandupInit(s, m, channelIDs)
-		} else if command == "getResponses" {
+		} else if command[0] == "getResponses" {
 			GetResponses(s, m, command)
 		}
 	}
