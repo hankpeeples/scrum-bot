@@ -126,7 +126,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						// Find each channels current state
 						ch, err := s.State.Channel(channelIDs[i])
 						if err != nil {
-							log.Error("Error getting channel: %s", err)
+							log.Errorf("Error getting channel: %s", err)
 							s.ChannelMessageSend(m.ChannelID, "Unable to find correct channels...")
 							return
 						}
@@ -134,14 +134,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						if !ch.IsThread() {
 							msg, err := s.ChannelMessageSend(channelIDs[i], fmt.Sprintf("Standup Thread for `%s`", date))
 							if err != nil {
-								log.Error("Thread init msg: %v", err)
+								log.Errorf("Thread init msg: %v", err)
 							}
 
 							// Create thread. Thread might archive after 300min (5 hours).
 							// Not sure what the archive duration actually does...
 							thread, err := s.MessageThreadStart(channelIDs[i], msg.ID, "Standup meeting", 1440)
 							if err != nil {
-								log.Error("Thread start: %v", err)
+								log.Errorf("Thread start: %v", err)
 							}
 
 							_, err = s.ChannelMessageSendEmbed(thread.ID, &discordgo.MessageEmbed{
