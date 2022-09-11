@@ -2,7 +2,9 @@
 package utils
 
 import (
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	logger "github.com/withmandala/go-log"
@@ -37,6 +39,20 @@ func SaveResponse(s *discordgo.Session, m *discordgo.MessageCreate, thread *disc
 	if err != nil {
 		log.Errorf("Error finding author: %v", err)
 	}
+
+	// create response file with append perms
+	f, err := os.OpenFile(parent.Name+".txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Errorf("Error creating file: %v", err)
+	}
+
+	// close file on function exit
+	defer f.Close()
+
+	// write new response to file
+	fmt.Fprintln(f, fmt.Sprintf("Author: %s | Date: %s", author.Nick, time.Now().Local().Format(time.RubyDate)))
+	fmt.Fprintln(f, m.Content)
+	fmt.Fprintln(f, "----------------------------------------------------------------------------")
 
 	log.Infof("Response: [%s] -> [%s/%s]", author.Nick, parent.Name, thread.Name)
 }
