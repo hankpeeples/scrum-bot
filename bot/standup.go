@@ -9,12 +9,9 @@ import (
 )
 
 // StandupInit initializes and runs the standup message thread creation loop
-func StandupInit(s *discordgo.Session, m *discordgo.MessageCreate) {
+func StandupInit(s *discordgo.Session, m *discordgo.MessageCreate, channelIDs []string) {
 	// Initialize timer duration
 	duration := time.Second * 5
-	// Hard coding channel IDs for simplicity
-	// channelIDs := []string{"1016903999628259411", "1014940760568774666", "1016070677419270175"}
-	channelIDs := []string{"1018326204161470526", "1018326221840449567", "1018326246364565645"}
 	// number of channels
 	numChannels := len(channelIDs)
 	// Create message send ticker
@@ -33,7 +30,7 @@ func StandupInit(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Send initialized confirmation in channel '!init' was used
 	_, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
 		Title:       "Standup coordinator initialized",
-		Description: fmt.Sprintf("Standup messages will be sent in %s: Monday - Friday, around 8am. \n\nA text file will be created to store responses should they be needed at a later date. Use `!getResponses <text channel name>` and the text file for your group will be uploaded to discord for your use.", channels),
+		Description: fmt.Sprintf("Standup messages will be sent in %s: Monday - Friday, around 8am. \n\nA text file will be created to store responses should they be needed at a later date. Use `!getResponses stand-ups-team-<your_#>` and the text file for your group will be uploaded to discord for your use.", channels),
 		Color:       green,
 	})
 	if err != nil {
