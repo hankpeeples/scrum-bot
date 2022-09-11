@@ -63,8 +63,8 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Hard coding channel IDs for simplicity
-	// ! channelIDs := []string{"1016903999628259411", "1014940760568774666", "1016070677419270175"}
-	channelIDs := []string{"1018326204161470526", "1018326221840449567", "1018326246364565645"}
+	channelIDs := []string{"1016903999628259411", "1014940760568774666", "1016070677419270175"}
+	// channelIDs := []string{"1018326204161470526", "1018326221840449567", "1018326246364565645"}
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID {
 		return
