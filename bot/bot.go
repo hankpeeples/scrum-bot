@@ -62,6 +62,9 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 }
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// Hard coding channel IDs for simplicity
+	// ! channelIDs := []string{"1016903999628259411", "1014940760568774666", "1016070677419270175"}
+	channelIDs := []string{"1018326204161470526", "1018326221840449567", "1018326246364565645"}
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID {
 		return
@@ -76,9 +79,20 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		command := m.Content[1:]
 
 		if command == "init" {
-			StandupInit(s, m)
+			StandupInit(s, m, channelIDs)
 		} else if command == "getResponses" {
 			GetResponses(s, m, command)
 		}
+	}
+
+	// find channel (thread)
+	thread, err := s.Channel(m.ChannelID)
+	if err != nil {
+		log.Errorf("Error getting thread: %v", err)
+	}
+	// only grab responses from threads
+	if thread.IsThread() {
+		// parse and save to file
+		utils.SaveResponse(s, m, thread)
 	}
 }
