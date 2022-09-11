@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+scrum-bot
+scrum-bot-*
 
 # Test binary, built with `go test -c`
 *.test
@@ -12,11 +14,8 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
-
 config.json
 .vscode
 .DS_Store
-scrum-bot-darwin
 .idea
 .env
