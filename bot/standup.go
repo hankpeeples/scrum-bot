@@ -11,7 +11,7 @@ import (
 // StandupInit initializes and runs the standup message thread creation loop
 func StandupInit(s *discordgo.Session, m *discordgo.MessageCreate, channelIDs []string) {
 	// Initialize timer duration
-	duration := time.Second * 5
+	duration := time.Hour * 24
 	// number of channels
 	numChannels := len(channelIDs)
 	// Create message send ticker
