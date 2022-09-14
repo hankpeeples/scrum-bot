@@ -2,6 +2,7 @@
 package bot
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -12,10 +13,11 @@ import (
 )
 
 var (
-	log   = utils.NewLogger()
-	red   = 0xf54248
-	blue  = 0x42b9f5
-	green = 0x28de4f
+	log        = utils.NewLogger()
+	red        = 0xf54248
+	blue       = 0x42b9f5
+	green      = 0x28de4f
+	channelIDs []string
 )
 
 // Start will begin a new discord bot session
@@ -26,6 +28,10 @@ func Start(token string) {
 	if err != nil {
 		log.Fatalf("Error creating discord session: %v", err)
 	}
+
+	log.Info("Searching for stand up channels...")
+	// find standup channels for guild
+	channelIDs = utils.GetStandupChannels(dg)
 
 	dg.AddHandler(ready)
 	// Register messageCreate func as callback for message events
@@ -61,10 +67,8 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 	log.Info("Bot status message updated successfully")
 }
 
+// messageCreate runs every time a message is sent to any text channel
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Hard coding channel IDs for simplicity
-	channelIDs := []string{"1016903999628259411", "1014940760568774666", "1016070677419270175"}
-	// channelIDs := []string{"1018326204161470526", "1018326221840449567", "1018326246364565645"}
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID {
 		return
@@ -82,6 +86,20 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			StandupInit(s, m, channelIDs)
 		} else if command[0] == "getResponses" {
 			GetResponses(s, m, command)
+		} else if command[0] == "refreshChannels" {
+			log.Info("Refreshing stand up channels...")
+			var channels string
+			// find all channels in stand up category
+			channelIDs = utils.GetStandupChannels(s)
+			// create string for printing
+			for i, channel := range channelIDs {
+				if i == len(channelIDs)-1 {
+					channels += fmt.Sprintf("<#%s>.", channel)
+					break
+				}
+				channels += fmt.Sprintf("<#%s>, ", channel)
+			}
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Refreshed stand up channels: %s", channels))
 		}
 	}
 
