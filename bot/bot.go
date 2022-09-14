@@ -17,7 +17,7 @@ var (
 	red        = 0xf54248
 	blue       = 0x42b9f5
 	green      = 0x28de4f
-	channelIDs []string
+	channelIDs []*discordgo.Channel
 )
 
 // Start will begin a new discord bot session
@@ -107,7 +107,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		command := strings.Split(m.Content[1:], " ")
 
 		if command[0] == "init" {
-			StandupInit(s, m, channelIDs)
+			// StandupInit(s, m, channelIDs)
 		} else if command[0] == "getResponses" {
 			GetResponses(s, m, command)
 		} else if command[0] == "refreshChannels" {
@@ -127,7 +127,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	// only grab responses from threads
 	if thread.IsThread() {
-		// parse and save to file
-		utils.SaveResponse(s, m, thread)
+		// make sure threads parent is in the `channelIDs` list
+		for _, c := range channelIDs {
+			if thread.ParentID == c.ID {
+				// parse and save to file
+				utils.SaveResponse(s, m, thread)
+			}
+		}
 	}
 }
