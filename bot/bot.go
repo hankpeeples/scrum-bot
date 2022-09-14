@@ -89,6 +89,10 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 		return
 	}
 	log.Info("Bot status message updated successfully")
+
+	// Auto run standup func on ready
+	log.Info("Auto starting standup thread message sender...")
+	StandupInit(s, channelIDs)
 }
 
 // messageCreate runs every time a message is sent to any text channel
@@ -106,9 +110,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Grab command following prefix
 		command := strings.Split(m.Content[1:], " ")
 
-		if command[0] == "init" {
-			// StandupInit(s, m, channelIDs)
-		} else if command[0] == "getResponses" {
+		if command[0] == "getResponses" {
 			GetResponses(s, m, command)
 		} else if command[0] == "refreshChannels" {
 			log.Info("Refreshing stand up channels...")
