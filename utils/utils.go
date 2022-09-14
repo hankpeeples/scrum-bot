@@ -107,7 +107,7 @@ func FindGeneral(s *discordgo.Session) string {
 	for _, c := range channels {
 		// Make sure channel is a text channel, and make sure its name is 'general'
 		if c.Type == discordgo.ChannelTypeGuildText && c.Name == "general" {
-			log.Infof("Found '%s' channel", c.Name)
+			log.Infof("Found '%s' channel.", c.Name)
 			return c.ID
 		}
 	}

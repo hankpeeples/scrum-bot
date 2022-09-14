@@ -44,11 +44,11 @@ func Start(token string) {
 		Description: fmt.Sprintf("Standup messages will be sent in %s Monday - Friday, around 8am.", channels),
 		Fields: []*discordgo.MessageEmbedField{
 			{
-				Name:  "`!getResponses <your_standup_channel_name>`",
+				Name:  "Command: `!getResponses <your_standup_channel_name>`",
 				Value: "A text file will be created to store responses should they be needed at a later date. Use this command for the text file for your group to be uploaded to discord for your use.",
 			},
 			{
-				Name:  "`!refreshChannels`",
+				Name:  "Command: `!refreshChannels`",
 				Value: "If a new standup channel is created at any point, use this to refresh the bots saved standup channel list.",
 			},
 		},
