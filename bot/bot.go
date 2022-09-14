@@ -32,6 +32,30 @@ func Start(token string) {
 	log.Info("Searching for stand up channels...")
 	// find standup channels for guild
 	channelIDs = utils.GetStandupChannels(dg)
+	// find channel 'general'
+	general := utils.FindGeneral(dg)
+
+	// create string for printing
+	channels := utils.CreateChannelsPrintString(channelIDs)
+	// Send initial message
+	_, err = dg.ChannelMessageSendEmbed(general, &discordgo.MessageEmbed{
+		Color:       green,
+		Title:       "Bot ready to go!",
+		Description: fmt.Sprintf("Standup messages will be sent in %s Monday - Friday, around 8am.", channels),
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:  "`!getResponses <your_standup_channel_name>`",
+				Value: "A text file will be created to store responses should they be needed at a later date. Use this command for the text file for your group to be uploaded to discord for your use.",
+			},
+			{
+				Name:  "`!refreshChannels`",
+				Value: "If a new standup channel is created at any point, use this to refresh the bots saved standup channel list.",
+			},
+		},
+	})
+	if err != nil {
+		log.Errorf("Unable to send initial embed: %v", err)
+	}
 
 	dg.AddHandler(ready)
 	// Register messageCreate func as callback for message events
@@ -88,17 +112,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			GetResponses(s, m, command)
 		} else if command[0] == "refreshChannels" {
 			log.Info("Refreshing stand up channels...")
-			var channels string
 			// find all channels in stand up category
 			channelIDs = utils.GetStandupChannels(s)
 			// create string for printing
-			for i, channel := range channelIDs {
-				if i == len(channelIDs)-1 {
-					channels += fmt.Sprintf("<#%s>.", channel)
-					break
-				}
-				channels += fmt.Sprintf("<#%s>, ", channel)
-			}
+			channels := utils.CreateChannelsPrintString(channelIDs)
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Refreshed stand up channels: %s", channels))
 		}
 	}
