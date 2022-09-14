@@ -83,15 +83,15 @@ func getAllGuildChannels(s *discordgo.Session) []*discordgo.Channel {
 }
 
 // GetStandupChannels returns the standup channels we need to use
-func GetStandupChannels(s *discordgo.Session) []string {
+func GetStandupChannels(s *discordgo.Session) []*discordgo.Channel {
 	channels := getAllGuildChannels(s)
 
-	var standupChannels []string
+	var standupChannels []*discordgo.Channel
 	// loop through channels and pull out text channels
 	for _, c := range channels {
 		// Make sure channel is a text channel, and make sure its parent category ID matches
 		if c.Type == discordgo.ChannelTypeGuildText && c.ParentID == parentCID {
-			standupChannels = append(standupChannels, c.ID)
+			standupChannels = append(standupChannels, c)
 		}
 	}
 
@@ -116,15 +116,15 @@ func FindGeneral(s *discordgo.Session) string {
 }
 
 // CreateChannelsPrintString makes a formatted string of all channels that will be sent messages
-func CreateChannelsPrintString(channelIDs []string) string {
+func CreateChannelsPrintString(channelIDs []*discordgo.Channel) string {
 	var channels string
 
 	for i, channel := range channelIDs {
 		if i == len(channelIDs)-1 {
-			channels += fmt.Sprintf("<#%s>.", channel)
+			channels += fmt.Sprintf("<#%s>.", channel.ID)
 			break
 		}
-		channels += fmt.Sprintf("<#%s>, ", channel)
+		channels += fmt.Sprintf("<#%s>, ", channel.ID)
 	}
 
 	return channels
