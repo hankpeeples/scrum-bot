@@ -10,8 +10,18 @@ import (
 	logger "github.com/withmandala/go-log"
 )
 
-// Prefix is the bot command character prefix
-const Prefix string = "!"
+const (
+	// MainGuildID is the Guild ID of the group project server
+	MainGuildID string = "938592071307116545"
+	// TestGuildID is the Guild ID of my test server
+	TestGuildID string = "706588663747969104"
+	// MainParentCategoryID is the category ID of the group server 'stand ups'
+	MainParentCategoryID string = "1019314319781019668"
+	// TestParentCategoryID is the category ID of my server 'stand ups'
+	TestParentCategoryID string = "1019361832877699153"
+	// Prefix is the bot command prefix character
+	Prefix string = "!"
+)
 
 var log = NewLogger()
 
@@ -55,4 +65,27 @@ func SaveResponse(s *discordgo.Session, m *discordgo.MessageCreate, thread *disc
 	fmt.Fprintln(f, "----------------------------------------------------------------------------")
 
 	log.Infof("Response: [%s] -> [%s/%s]", author.Nick, parent.Name, thread.Name)
+}
+
+// GetStandupChannels returns the standup channels we need to use
+func GetStandupChannels(s *discordgo.Session) []string {
+	// use 'stand ups' category as parentID to match stand-ups channels
+	// TODO: Swap GuildID
+	guild, err := s.GuildChannels(TestGuildID)
+	if err != nil {
+		log.Fatalf("Error getting guild channels: %v", err)
+	}
+
+	var standupChannels []string
+	// loop through channels and pull out text channels
+	for _, c := range guild {
+		// Make sure channel is a text channel, and make sure its parent category ID matches
+		// TODO: Swap ParentCategoryID
+		if c.Type == discordgo.ChannelTypeGuildText && c.ParentID == TestParentCategoryID {
+			standupChannels = append(standupChannels, c.ID)
+		}
+	}
+
+	log.Infof("Found %d stand up channels.", len(standupChannels))
+	return standupChannels
 }
