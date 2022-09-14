@@ -5,37 +5,16 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/hankpeeples/scrum-bot/utils"
 )
 
 // StandupInit initializes and runs the standup message thread creation loop
-func StandupInit(s *discordgo.Session, m *discordgo.MessageCreate, channelIDs []string) {
+func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 	// Initialize timer duration
 	duration := time.Hour * 24
 	// number of channels
 	numChannels := len(channelIDs)
 	// Create message send ticker
 	ticker := time.NewTicker(duration)
-
-	// create initialized channels message
-	var channels string
-	for i, channel := range channelIDs {
-		if i == len(channelIDs)-1 { // no trailing comma
-			channels += fmt.Sprintf("<#%s>", channel)
-			break
-		}
-		channels += fmt.Sprintf("<#%s>, ", channel)
-	}
-
-	// Send initialized confirmation in channel '!init' was used
-	_, err := s.ChannelMessageSendEmbed(m.ChannelID, &discordgo.MessageEmbed{
-		Title:       "Standup coordinator initialized",
-		Description: fmt.Sprintf("Standup messages will be sent in %s: Monday - Friday, around 8am. \n\nA text file will be created to store responses should they be needed at a later date. Use `!getResponses stand-ups-team-<your_#>` and the text file for your group will be uploaded to discord for your use.", channels),
-		Color:       green,
-	})
-	if err != nil {
-		utils.HandleEmbedFailure(s, m, err)
-	}
 
 	go func() {
 		var fullDate, date, day string
@@ -65,22 +44,22 @@ func StandupInit(s *discordgo.Session, m *discordgo.MessageCreate, channelIDs []
 				i = numChannels
 			} else {
 				// Find each channels current state
-				ch, err := s.State.Channel(channelIDs[i])
+				ch, err := s.State.Channel(channelIDs[i].ID)
 				if err != nil {
 					log.Errorf("Error getting channel: %s", err)
-					s.ChannelMessageSend(m.ChannelID, "Unable to find correct channels...")
+					s.ChannelMessageSend(channelIDs[i].ID, "Unable to find correct channels...")
 					return
 				}
 
 				if !ch.IsThread() {
-					msg, err := s.ChannelMessageSend(channelIDs[i], fmt.Sprintf("Standup Thread for `%s`", date))
+					msg, err := s.ChannelMessageSend(channelIDs[i].ID, fmt.Sprintf("Standup Thread for `%s`", date))
 					if err != nil {
 						log.Errorf("Thread init msg: %v", err)
 					}
 
 					// Create thread. Thread might archive after 300min (5 hours).
 					// Not sure what the archive duration actually does...
-					thread, err := s.MessageThreadStart(channelIDs[i], msg.ID, "Standup meeting", 1440)
+					thread, err := s.MessageThreadStart(channelIDs[i].ID, msg.ID, "Standup meeting", 1440)
 					if err != nil {
 						log.Errorf("Thread start: %v", err)
 					}
@@ -105,7 +84,8 @@ func StandupInit(s *discordgo.Session, m *discordgo.MessageCreate, channelIDs []
 						Color: blue,
 					})
 					if err != nil {
-						utils.HandleEmbedFailure(s, m, err)
+						log.Errorf("[CRITICAL] Unable to send standup embed [%d]: %v", i+1, err)
+						break
 					}
 					log.Infof("Standup message sent [%d of %d]", i+1, numChannels)
 				}
