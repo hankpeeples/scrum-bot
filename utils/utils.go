@@ -11,14 +11,19 @@ import (
 )
 
 const (
-	// MainGuildID is the Guild ID of the group project server
-	MainGuildID string = "938592071307116545"
-	// TestGuildID is the Guild ID of my test server
-	TestGuildID string = "706588663747969104"
-	// MainParentCategoryID is the category ID of the group server 'stand ups'
-	MainParentCategoryID string = "1019314319781019668"
-	// TestParentCategoryID is the category ID of my server 'stand ups'
-	TestParentCategoryID string = "1019361832877699153"
+	// mainGID is the Guild ID of the group project server
+	mainGID string = "938592071307116545"
+	// testGID is the Guild ID of my test server
+	testGID string = "706588663747969104"
+	// GuildID is the Guild ID the bot is currently using (main or test)
+	// TODO: Swap to MainGID
+	GuildID string = testGID
+	// mainParentCID is the category ID of the group server 'stand ups'
+	mainParentCID string = "1019314319781019668"
+	// testParentCID is the category ID of my server 'stand ups'
+	testParentCID string = "1019361832877699153"
+	// TODO: Swap to MainParentCID
+	parentCID string = testParentCID
 	// Prefix is the bot command prefix character
 	Prefix string = "!"
 )
@@ -67,25 +72,60 @@ func SaveResponse(s *discordgo.Session, m *discordgo.MessageCreate, thread *disc
 	log.Infof("Response: [%s] -> [%s/%s]", author.Nick, parent.Name, thread.Name)
 }
 
-// GetStandupChannels returns the standup channels we need to use
-func GetStandupChannels(s *discordgo.Session) []string {
+func getAllGuildChannels(s *discordgo.Session) []*discordgo.Channel {
 	// use 'stand ups' category as parentID to match stand-ups channels
-	// TODO: Swap GuildID
-	guild, err := s.GuildChannels(TestGuildID)
+	guild, err := s.GuildChannels(GuildID)
 	if err != nil {
 		log.Fatalf("Error getting guild channels: %v", err)
 	}
 
+	return guild
+}
+
+// GetStandupChannels returns the standup channels we need to use
+func GetStandupChannels(s *discordgo.Session) []string {
+	channels := getAllGuildChannels(s)
+
 	var standupChannels []string
 	// loop through channels and pull out text channels
-	for _, c := range guild {
+	for _, c := range channels {
 		// Make sure channel is a text channel, and make sure its parent category ID matches
-		// TODO: Swap ParentCategoryID
-		if c.Type == discordgo.ChannelTypeGuildText && c.ParentID == TestParentCategoryID {
+		if c.Type == discordgo.ChannelTypeGuildText && c.ParentID == parentCID {
 			standupChannels = append(standupChannels, c.ID)
 		}
 	}
 
 	log.Infof("Found %d stand up channels.", len(standupChannels))
 	return standupChannels
+}
+
+// FindGeneral returns the ID of a channel named 'general'
+func FindGeneral(s *discordgo.Session) string {
+	channels := getAllGuildChannels(s)
+
+	// loop through channels and pull out text channels
+	for _, c := range channels {
+		// Make sure channel is a text channel, and make sure its name is 'general'
+		if c.Type == discordgo.ChannelTypeGuildText && c.Name == "general" {
+			log.Infof("Found '%s' channel", c.Name)
+			return c.ID
+		}
+	}
+
+	return ""
+}
+
+// CreateChannelsPrintString makes a formatted string of all channels that will be sent messages
+func CreateChannelsPrintString(channelIDs []string) string {
+	var channels string
+
+	for i, channel := range channelIDs {
+		if i == len(channelIDs)-1 {
+			channels += fmt.Sprintf("<#%s>.", channel)
+			break
+		}
+		channels += fmt.Sprintf("<#%s>, ", channel)
+	}
+
+	return channels
 }
