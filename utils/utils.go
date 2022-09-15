@@ -4,6 +4,7 @@ package utils
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -27,6 +28,16 @@ const (
 	// Prefix is the bot command prefix character
 	Prefix string = "!"
 )
+
+// DateStruct holds separated time/date information
+type DateStruct struct {
+	// FullDate : `Wed Sep 14`
+	FullDate string
+	// Day : `Thu`
+	Day string
+	// Hour is the hour of day as an integer
+	Hour int
+}
 
 var log = NewLogger()
 
@@ -128,4 +139,24 @@ func CreateChannelsPrintString(channelIDs []*discordgo.Channel) string {
 	}
 
 	return channels
+}
+
+// GetDate returns the current time, date, and day
+func GetDate() *DateStruct {
+	// Get current date and time
+	fullDate := time.Now().Local().Format(time.RubyDate)
+
+	// Convert hour section of time to int for comparison
+	hourInt, err := strconv.Atoi(fullDate[11:13])
+	if err != nil {
+		log.Errorf("Error converting hour to int: %v", err)
+	}
+
+	d := &DateStruct{
+		FullDate: fullDate[0:10],
+		Day:      fullDate[0:3],
+		Hour:     hourInt,
+	}
+
+	return d
 }
