@@ -38,19 +38,20 @@ func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 	// create message send ticker
 	ticker := time.NewTicker(t * time.Duration(diff))
 
-	go func() {
-		// Counter for looping through each text channelID
-		i := 0
-		_ = <-ticker.C
-		for {
-			if i >= numChannels {
-				i = 0
-				// Reset the ticker
-				ticker.Reset(time.Second * 10)
-				log.Info("Ticker was reset to 24hrs.")
-				_ = <-ticker.C
-			}
+	// Counter for looping through each text channelID
+	i := 0
 
+	go func(i int) {
+
+		// waiting initial time difference between bot start and 8 AM
+		<-ticker.C
+
+		t = time.Hour
+		// setting newTicker to 24 hours, if this is not done the standup messages will
+		// be sent twice in a row on the first iteration
+		newTicker := time.NewTicker(t * 24)
+
+		for {
 			// If it is saturday or sunday, no message
 			if dateStruct.Day == "Sat" || dateStruct.Day == "Sun" {
 				log.Infof("No standup today: %s", dateStruct.Day)
@@ -105,6 +106,12 @@ func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 				}
 			}
 			i++
+			// see if all messages have been sent, if so...reset ticker
+			if i == numChannels {
+				i = 0
+				log.Info("Waiting 24hrs...")
+				<-newTicker.C
+			}
 		} // end of for loop
-	}()
+	}(i)
 }
