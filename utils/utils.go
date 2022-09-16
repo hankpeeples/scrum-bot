@@ -158,3 +158,18 @@ func GetDate() *DateStruct {
 
 	return d
 }
+
+// SendHeartbeat keeps the bot from timing out while waiting for
+// standup ticker duration to expire
+func SendHeartbeat(s *discordgo.Session) {
+	duration := time.Hour * 1
+	log.Info("Sending heartbeat every hour to keep connection alive...")
+	heartbeatTicker := time.NewTicker(duration)
+
+	defer heartbeatTicker.Stop()
+
+	for {
+		<-heartbeatTicker.C
+		heartbeatTicker.Reset(duration)
+	}
+}
