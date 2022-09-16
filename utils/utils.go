@@ -17,14 +17,12 @@ const (
 	// testGID is the Guild ID of my test server
 	testGID string = "706588663747969104"
 	// GuildID is the Guild ID the bot is currently using (main or test)
-	// TODO: Swap to MainGID
-	GuildID string = testGID
+	GuildID string = mainGID
 	// mainParentCID is the category ID of the group server 'stand ups'
 	mainParentCID string = "1019314319781019668"
 	// testParentCID is the category ID of my server 'stand ups'
 	testParentCID string = "1019361832877699153"
-	// TODO: Swap to MainParentCID
-	parentCID string = testParentCID
+	parentCID     string = mainParentCID
 	// Prefix is the bot command prefix character
 	Prefix string = "!"
 )
