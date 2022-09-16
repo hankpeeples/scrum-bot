@@ -46,10 +46,12 @@ func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 		// waiting initial time difference between bot start and 8 AM
 		<-ticker.C
 
-		t = time.Hour
+		// re-acquire date
+		dateStruct = utils.GetDate()
+
 		// setting newTicker to 24 hours, if this is not done the standup messages will
 		// be sent twice in a row on the first iteration
-		newTicker := time.NewTicker(t * 24)
+		newTicker := time.NewTicker(time.Hour * 24)
 
 		for {
 			// If it is saturday or sunday, no message
@@ -107,10 +109,12 @@ func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 			}
 			i++
 			// see if all messages have been sent, if so...reset ticker
-			if i == numChannels {
+			if i >= numChannels {
 				i = 0
 				log.Info("Waiting 24hrs...")
 				<-newTicker.C
+				// re-acquire date
+				dateStruct = utils.GetDate()
 			}
 		} // end of for loop
 	}(i)

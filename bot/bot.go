@@ -33,29 +33,35 @@ func Start(token string) {
 	// find standup channels for guild
 	channelIDs = utils.GetStandupChannels(dg)
 	// find channel 'general'
-	general := utils.FindGeneral(dg)
+	// general := utils.FindGeneral(dg)
 
 	// create string for printing
-	channels := utils.CreateChannelsPrintString(channelIDs)
-	// Send initial message
-	_, err = dg.ChannelMessageSendEmbed(general, &discordgo.MessageEmbed{
-		Color:       green,
-		Title:       "Bot ready to go!",
-		Description: fmt.Sprintf("Standup messages will be sent in %s Monday - Friday, around 8am.", channels),
-		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:  "Command: `!getResponses <your_standup_channel_name>`",
-				Value: "A text file will be created to store responses should they be needed at a later date. Use this command for the text file for your group to be uploaded to discord for your use.",
+	// channels := utils.CreateChannelsPrintString(channelIDs)
+	/*
+		// Send initial message
+		_, err = dg.ChannelMessageSendEmbed(general, &discordgo.MessageEmbed{
+			Color:       green,
+			Title:       "Bot ready to go!",
+			Description: fmt.Sprintf("Standup messages will be sent in %s Monday - Friday, around 8am.", channels),
+			Fields: []*discordgo.MessageEmbedField{
+				{
+					Name:  "Command: `!getResponses <your_standup_channel_name>`",
+					Value: "A text file will be created to store responses should they be needed at a later date. Use this command for the text file for your group to be uploaded to discord for your use.",
+				},
+				{
+					Name:  "Command: `!refreshChannels`",
+					Value: "If a new standup channel is created at any point, use this to refresh the bots saved standup channel list.",
+				},
 			},
-			{
-				Name:  "Command: `!refreshChannels`",
-				Value: "If a new standup channel is created at any point, use this to refresh the bots saved standup channel list.",
-			},
-		},
-	})
-	if err != nil {
-		log.Errorf("Unable to send initial embed: %v", err)
-	}
+		})
+		if err != nil {
+			log.Errorf("Unable to send initial embed: %v", err)
+		}
+	*/
+
+	// start function to send heartbeat every hour so we don't timeout
+	// while waiting for standup ticker duration
+	go utils.SendHeartbeat(dg)
 
 	dg.AddHandler(ready)
 	// Register messageCreate func as callback for message events
@@ -71,6 +77,11 @@ func Start(token string) {
 	}
 
 	log.Info("Session open and listening ✅")
+
+	// Auto run standup func on ready
+	log.Info("Auto starting standup thread message sender...")
+	StandupInit(dg, channelIDs)
+
 	// Wait here for ctrl-c or other termination signal
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
@@ -89,10 +100,6 @@ func ready(s *discordgo.Session, event *discordgo.Ready) {
 		return
 	}
 	log.Info("Bot status message updated successfully")
-
-	// Auto run standup func on ready
-	log.Info("Auto starting standup thread message sender...")
-	StandupInit(s, channelIDs)
 }
 
 // messageCreate runs every time a message is sent to any text channel
