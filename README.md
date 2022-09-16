@@ -6,6 +6,3 @@ Its purpose is to automate our daily standup meetings, which will be placed in s
 Just start the bot and you're ready to go, no initialization command needed. The bot will find the standup channels automatically based on their parent category (_hard coded ID_). It will then calculate the remaining time until 8:00 AM and wait to send messages until then. 
 
 Responses sent within the individual standup threads are saved to a text file for safe keeping, should they be needed for documentation at a later time. Using `!getResponses <your_standup_channel_name>` will upload the corresponding text file for your use.
-
-## Known Issues
-If the bot is started within 8:00 AM and 8:59 AM, the standup message will send instantly, but 2 times in a row (to each channel), but only for that first iteration. Subsequent iterations will perform correctly (every 24 hours).
