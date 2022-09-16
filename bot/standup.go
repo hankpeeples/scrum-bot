@@ -5,41 +5,55 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/hankpeeples/scrum-bot/utils"
 )
 
 // StandupInit initializes and runs the standup message thread creation loop
 func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
-	// Initialize timer duration
-	duration := time.Hour * 24
+	var numChannels, diff int = 0, 0
+	// Set 't' to hours. If dateStruct.Hour is == 8, the ticker needs a positive non-zero
+	// duration. So this will change to ~ time.Second * 2.
+	t := time.Hour
+
+	dateStruct := utils.GetDate()
+	// check current time is before or after 8am
+	if dateStruct.Hour > 8 {
+		// calculate time until 8am
+		diff = (24 - dateStruct.Hour) + 8
+		log.Infof("Waiting %d hour(s) before starting standup timer.", diff)
+	} else if dateStruct.Hour < 8 {
+		// calculate time until 8am
+		diff = 8 - dateStruct.Hour
+		log.Infof("Waiting %d hour(s) after starting standup timer.", diff)
+	} else {
+		// It is ~8am here! (Not regarding minutes)
+		log.Info("It's ~8am! Sending standup messages in 2 seconds...")
+		// set 't' to seconds to send messages now, will reset to 24 hr after
+		t = time.Second
+		diff = 2
+	}
+
 	// number of channels
-	numChannels := len(channelIDs)
-	// Create message send ticker
-	ticker := time.NewTicker(duration)
+	numChannels = len(channelIDs)
+	// create message send ticker
+	ticker := time.NewTicker(t * time.Duration(diff))
 
 	go func() {
-		var fullDate, date, day string
 		// Counter for looping through each text channelID
 		i := 0
-		// run every 24 hours
 		_ = <-ticker.C
 		for {
 			if i >= numChannels {
 				i = 0
 				// Reset the ticker
-				ticker.Reset(duration)
+				ticker.Reset(time.Second * 10)
+				log.Info("Ticker was reset to 24hrs.")
 				_ = <-ticker.C
 			}
-			// Get current date and time
-			fullDate = time.Now().Local().Format(time.RubyDate)
-			// Only want first part of date: `Fri Sep 02`
-			date = fullDate[0:10]
-			// Only day of the week
-			day = date[0:3]
 
-			day = "Mon"
 			// If it is saturday or sunday, no message
-			if day == "Sat" || day == "Sun" {
-				log.Infof("No standup today: %s", day)
+			if dateStruct.Day == "Sat" || dateStruct.Day == "Sun" {
+				log.Infof("No standup today: %s", dateStruct.Day)
 				// 'i' and the ticker will reset so this message is only logged once
 				i = numChannels
 			} else {
@@ -52,7 +66,7 @@ func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 				}
 
 				if !ch.IsThread() {
-					msg, err := s.ChannelMessageSend(channelIDs[i].ID, fmt.Sprintf("Standup Thread for `%s`", date))
+					msg, err := s.ChannelMessageSend(channelIDs[i].ID, fmt.Sprintf("Standup Thread for `%s`", dateStruct.FullDate))
 					if err != nil {
 						log.Errorf("Thread init msg: %v", err)
 					}
