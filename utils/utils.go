@@ -73,12 +73,18 @@ func SaveResponse(s *discordgo.Session, m *discordgo.MessageCreate, thread *disc
 	// close file on function exit
 	defer f.Close()
 
+	authorName := author.Nick
+	// use normal discord name if no nickname has been set
+	if author.Nick == "" {
+		authorName = author.User.Username
+	}
+
 	// write new response to file
-	fmt.Fprintln(f, fmt.Sprintf("Author: %s | Date: %s", author.Nick, time.Now().Local().Format(time.RubyDate)))
+	fmt.Fprintln(f, fmt.Sprintf("Author: %s | Date: %s", authorName, time.Now().Local().Format(time.RubyDate)))
 	fmt.Fprintln(f, m.Content)
 	fmt.Fprintln(f, "----------------------------------------------------------------------------")
 
-	log.Infof("Response: [%s] -> [%s/%s]", author.Nick, parent.Name, thread.Name)
+	log.Infof("Response: [%s] -> [%s/%s]", authorName, parent.Name, thread.Name)
 }
 
 func getAllGuildChannels(s *discordgo.Session) []*discordgo.Channel {
