@@ -10,7 +10,7 @@ import (
 
 // StandupInit initializes and runs the standup message thread creation loop
 func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
-	var numChannels, diff int = 0, 0
+	var diff int
 	// Set 't' to hours. If dateStruct.Hour is == 8, the ticker needs a positive non-zero
 	// duration. So this will change to ~ time.Second * 2.
 	t := time.Hour
@@ -33,8 +33,6 @@ func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 		diff = 2
 	}
 
-	// number of channels
-	numChannels = len(channelIDs)
 	// create message send ticker
 	ticker := time.NewTicker(t * time.Duration(diff))
 
@@ -45,6 +43,11 @@ func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 
 		// waiting initial time difference between bot start and 8 AM
 		<-ticker.C
+
+		// get channels again, making sure all will be used
+		channelIDs = utils.GetStandupChannels(s)
+		// number of channels
+		numChannels := len(channelIDs)
 
 		// re-acquire date
 		dateStruct = utils.GetDate()
@@ -113,6 +116,10 @@ func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 				i = 0
 				log.Info("Waiting 24hrs...")
 				<-newTicker.C
+				// get channels again, making sure all will be used
+				channelIDs = utils.GetStandupChannels(s)
+				// number of channels
+				numChannels = len(channelIDs)
 				// re-acquire date
 				dateStruct = utils.GetDate()
 			}

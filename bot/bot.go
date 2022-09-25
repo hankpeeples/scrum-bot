@@ -2,7 +2,6 @@
 package bot
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -119,13 +118,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		if command[0] == "getResponses" {
 			GetResponses(s, m, command)
-		} else if command[0] == "refreshChannels" {
-			log.Info("Refreshing stand up channels...")
-			// find all channels in stand up category
-			channelIDs = utils.GetStandupChannels(s)
-			// create string for printing
-			channels := utils.CreateChannelsPrintString(channelIDs)
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Refreshed stand up channels: %s", channels))
 		}
 	}
 
