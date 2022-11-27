@@ -34,7 +34,7 @@ func StandupInit(s *discordgo.Session, channelIDs []*discordgo.Channel) {
 	}
 
 	// create message send ticker
-	ticker := time.NewTicker(t * time.Duration(diff))
+	ticker := time.NewTicker(t * time.Duration(diff+3))
 
 	// Counter for looping through each text channelID
 	i := 0
